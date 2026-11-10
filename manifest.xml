@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp
+  xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+  xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+  xsi:type="TaskPaneApp">
+  <Id>590aaff8-886c-41d7-9abb-9c0242fd8709</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>IRA</ProviderName>
+  <DefaultLocale>fa-IR</DefaultLocale>
+  <DisplayName DefaultValue="قیمت لحظه‌ای طلای ایرا"/>
+  <Description DefaultValue="نمایش و درج آخرین قیمت آبشده نقدی در اکسل"/>
+  <IconUrl DefaultValue="https://alisaeidim.github.io/ira-excel-addon/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://alisaeidim.github.io/ira-excel-addon/icon-64.png"/>
+  <SupportUrl DefaultValue="https://iragolds.com"/>
+  <AppDomains>
+    <AppDomain>https://alisaeidim.github.io/ira-excel-addon</AppDomain>
+    <AppDomain>https://script.google.com</AppDomain>
+    <AppDomain>https://script.googleusercontent.com</AppDomain>
+  </AppDomains>
+  <Hosts>
+    <Host Name="Workbook"/>
+  </Hosts>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://alisaeidim.github.io/ira-excel-addon/taskpane.html"/>
+  </DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Workbook">
+        <DesktopFormFactor>
+          <GetStarted>
+            <Title resid="GetStarted.Title"/>
+            <Description resid="GetStarted.Description"/>
+            <LearnMoreUrl resid="GetStarted.LearnMoreUrl"/>
+          </GetStarted>
+          <FunctionFile resid="Taskpane.Url"/>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="IRA.Group">
+                <Label resid="Group.Label"/>
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16"/>
+                  <bt:Image size="32" resid="Icon.32"/>
+                  <bt:Image size="80" resid="Icon.80"/>
+                </Icon>
+                <Control xsi:type="Button" id="IRA.OpenTaskpane">
+                  <Label resid="Button.Label"/>
+                  <Supertip>
+                    <Title resid="Button.Label"/>
+                    <Description resid="Button.Description"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>IRA.Taskpane</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Url"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16" DefaultValue="https://alisaeidim.github.io/ira-excel-addon/icon-32.png"/>
+        <bt:Image id="Icon.32" DefaultValue="https://alisaeidim.github.io/ira-excel-addon/icon-32.png"/>
+        <bt:Image id="Icon.80" DefaultValue="https://alisaeidim.github.io/ira-excel-addon/icon-64.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://iragolds.com"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://alisaeidim.github.io/ira-excel-addon/taskpane.html"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="GetStarted.Title" DefaultValue="افزونه قیمت ایرا"/>
+        <bt:String id="Group.Label" DefaultValue="ایرا"/>
+        <bt:String id="Button.Label" DefaultValue="قیمت طلا"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="GetStarted.Description" DefaultValue="آخرین قیمت آبشده نقدی را در اکسل درج کنید."/>
+        <bt:String id="Button.Description" DefaultValue="باز کردن پنل دریافت قیمت آبشده نقدی"/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>
