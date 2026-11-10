@@ -1,82 +1,140 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>قیمت لحظه‌ای ایرا</title>
-<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
-<style>
-body{font-family:Tahoma,Arial,sans-serif;margin:18px;color:#222}
-h2{font-size:18px;margin:0 0 16px}
-.price{font-size:25px;font-weight:700;margin:12px 0;color:#9a762e}
-.muted{font-size:12px;color:#666;line-height:1.9}
-button{border:0;border-radius:6px;padding:11px 15px;background:#9a762e;color:white;cursor:pointer;font-size:14px;margin:5px 0}
-button:disabled{opacity:.5;cursor:wait}
-input{width:70px;padding:8px;border:1px solid #ccc;border-radius:5px;direction:ltr}
-#status{font-size:12px;line-height:1.9;margin-top:10px}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>قیمت طلا ایرا</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <style>
+    body {
+      font-family: Tahoma, Arial, sans-serif;
+      padding: 20px;
+      color: #333;
+    }
+    input, button {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 11px;
+      margin: 7px 0;
+      font-size: 14px;
+    }
+    button {
+      background: #b08d45;
+      color: white;
+      border: 0;
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 12px;
+      line-height: 1.8;
+      font-size: 13px;
+    }
+  </style>
 </head>
 <body>
-<h2>قیمت آبشده نقدی ایرا</h2>
-<div class="muted">آخرین قیمت دریافت‌شده از Google Sheets</div>
-<div id="price" class="price">—</div>
-<div id="details" class="muted">برای دریافت قیمت، دکمه زیر را بزنید.</div>
-<p><label>سلول مقصد: <input id="cell" value="B2" maxlength="12"></label></p>
-<button id="refresh" disabled>دریافت قیمت و درج در اکسل</button>
-<div id="status" role="status">در حال آماده‌سازی افزونه…</div>
-<script>
-const API_URL = "https://script.google.com/macros/s/AKfycbyYsdnW8S54LWC2nqztUGiMEt9uu2_2ApHdci6ud1mTivasmtKh19q4uFrLnm_s5ine/exec";
-const $ = id => document.getElementById(id);
-const formatPrice = n => new Intl.NumberFormat('fa-IR').format(n);
+  <h3>قیمت لحظه‌ای طلا | ایرا</h3>
 
-function getApiData(){
-  return new Promise((resolve,reject)=>{
-    const callback = 'iraPriceCallback_' + Date.now() + '_' + Math.floor(Math.random()*100000);
-    const script = document.createElement('script');
-    const timer = setTimeout(()=>{
-      cleanup();
-      reject(new Error('پاسخی از API دریافت نشد. تنظیم JSONP در Apps Script را بررسی کنید.'));
-    },20000);
-    function cleanup(){
-      clearTimeout(timer);
-      try{delete window[callback]}catch(e){window[callback]=undefined}
-      if(script.parentNode) script.parentNode.removeChild(script);
+  <label for="cell">سلول مقصد در اکسل:</label>
+  <input id="cell" value="B2" dir="ltr">
+
+  <button id="update">دریافت و ثبت آخرین قیمت</button>
+
+  <div id="status">آماده دریافت قیمت</div>
+
+  <script>
+    const API_URL =
+      "https://script.google.com/macros/s/AKfycbyYsdnW8S54LWC2nqztUGiMEt9uu2_2ApHdci6ud1mTivasmtKh19q4uFrLnm_s5ine/exec";
+
+    function setStatus(message) {
+      document.getElementById("status").textContent = message;
     }
-    window[callback] = data => {cleanup(); resolve(data)};
-    script.onerror = ()=>{cleanup();reject(new Error('بارگذاری پاسخ API ناموفق بود.'))};
-    script.src = API_URL + '?callback=' + encodeURIComponent(callback) + '&_=' + Date.now();
-    document.head.appendChild(script);
-  });
-}
 
-async function refreshPrice(){
-  const btn=$('refresh'); btn.disabled=true; $('status').textContent='در حال دریافت قیمت…';
-  try{
-    const data=await getApiData();
-    if(!data || !data.success || !Number.isFinite(Number(data.price))) throw new Error(data?.error || 'قیمت معتبر دریافت نشد.');
-    const price=Number(data.price);
-    $('price').textContent=formatPrice(price)+' تومان';
-    $('details').textContent='نوع نرخ: '+(data.rate_type||'—')+' | زمان پیام: '+(data.message_at||'—');
-    const address=$('cell').value.trim().toUpperCase();
-    if(!/^[A-Z]{1,3}[1-9][0-9]{0,6}$/.test(address)) throw new Error('آدرس سلول معتبر نیست؛ نمونه: B2');
-    await Excel.run(async context=>{
-      const range=context.workbook.getActiveWorksheet().getRange(address);
-      range.values=[[price]];
-      range.numberFormat=[['#,##0']];
-      await context.sync();
+    function getGoldPrice() {
+      return new Promise((resolve, reject) => {
+        const callbackName =
+          "iraPriceCallback_" + Date.now();
+
+        const script = document.createElement("script");
+
+        const timeout = setTimeout(() => {
+          cleanup();
+          reject(new Error("پاسخی از سرور دریافت نشد."));
+        }, 15000);
+
+        function cleanup() {
+          clearTimeout(timeout);
+          delete window[callbackName];
+          script.remove();
+        }
+
+        window[callbackName] = function(data) {
+          cleanup();
+
+          if (!data || !data.success) {
+            reject(new Error(data?.error || "دریافت قیمت ناموفق بود."));
+            return;
+          }
+
+          resolve(data);
+        };
+
+        script.onerror = function() {
+          cleanup();
+          reject(new Error("خطا در اتصال به API قیمت طلا."));
+        };
+
+        script.src =
+          API_URL + "?callback=" + callbackName;
+
+        document.head.appendChild(script);
+      });
+    }
+
+    async function updateExcel() {
+      const cell = document.getElementById("cell").value.trim();
+
+      if (!cell) {
+        setStatus("آدرس سلول را وارد کن.");
+        return;
+      }
+
+      try {
+        setStatus("در حال دریافت قیمت...");
+
+        const data = await getGoldPrice();
+
+        await Excel.run(async (context) => {
+          const sheet = context.workbook.worksheets.getActiveWorksheet();
+          const range = sheet.getRange(cell);
+
+          range.values = [[data.price]];
+          range.numberFormat = [["#,##0"]];
+
+          await context.sync();
+        });
+
+        setStatus(
+          "قیمت با موفقیت ثبت شد: " +
+          Number(data.price).toLocaleString("en-US") +
+          " " + data.currency
+        );
+
+      } catch (error) {
+        setStatus("خطا: " + error.message);
+      }
+    }
+
+    Office.onReady(function(info) {
+      if (info.host === Office.HostType.Excel) {
+        document.getElementById("update")
+          .addEventListener("click", updateExcel);
+
+        setStatus("افزونه آماده است.");
+      } else {
+        setStatus("این افزونه باید در Excel اجرا شود.");
+      }
     });
-    $('status').textContent='قیمت با موفقیت در سلول '+address+' درج شد.';
-  }catch(err){
-    $('status').textContent='خطا: '+(err?.message||String(err))+' — اگر پاسخ JSONP دریافت نمی‌شود، باید doGet در Apps Script برای پارامتر callback اصلاح و دوباره Deploy شود.';
-  }finally{btn.disabled=false}
-}
-Office.onReady(info=>{
-  if(info.host===Office.HostType.Excel){
-    $('refresh').disabled=false;
-    $('status').textContent='آماده دریافت قیمت. سلول مقصد را مشخص کنید.';
-    $('refresh').addEventListener('click',refreshPrice);
-  }else $('status').textContent='این افزونه باید در Excel اجرا شود.';
-});
-</script>
+  </script>
 </body>
 </html>
