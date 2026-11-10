@@ -1,140 +1,195 @@
-
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>قیمت طلا ایرا</title>
+  <title>IRA MOJODI | قیمت آبشده نقدی</title>
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
   <style>
+    :root { color-scheme: light; }
     body {
       font-family: Tahoma, Arial, sans-serif;
-      padding: 20px;
-      color: #333;
+      margin: 0;
+      padding: 18px;
+      color: #282828;
+      background: #fff;
     }
-    input, button {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 11px;
-      margin: 7px 0;
-      font-size: 14px;
+    .brand { color: #9b7937; font-size: 12px; letter-spacing: .5px; }
+    h2 { margin: 6px 0 4px; font-size: 19px; }
+    .sub { color: #777; font-size: 12px; margin-bottom: 18px; }
+    .price-card {
+      border: 1px solid #e7dfcf;
+      border-radius: 12px;
+      padding: 14px;
+      margin: 12px 0;
+      background: #fcfaf6;
     }
+    .price-label { color: #777; font-size: 12px; }
+    #price { font-size: 27px; font-weight: bold; margin-top: 8px; direction: ltr; text-align: right; }
+    #currency { color: #777; font-size: 12px; margin-top: 4px; }
     button {
-      background: #b08d45;
-      color: white;
+      width: 100%;
       border: 0;
-      cursor: pointer;
-    }
-    #status {
+      border-radius: 8px;
+      padding: 12px;
       margin-top: 12px;
-      line-height: 1.8;
-      font-size: 13px;
+      font: inherit;
+      cursor: pointer;
+      background: #a88948;
+      color: white;
     }
+    button:disabled { opacity: .6; cursor: wait; }
+    #status { font-size: 12px; line-height: 1.9; margin-top: 12px; color: #555; }
+    .meta { font-size: 11px; color: #888; line-height: 1.9; margin-top: 10px; }
+    .ok { color: #267447 !important; }
+    .err { color: #b42318 !important; }
   </style>
 </head>
 <body>
-  <h3>قیمت لحظه‌ای طلا | ایرا</h3>
+  <div class="brand">IRA | ایرا</div>
+  <h2>قیمت آبشده نقدی</h2>
+  <div class="sub">دریافت از Google Sheets و ثبت در فایل IRA MOJODI</div>
 
-  <label for="cell">سلول مقصد در اکسل:</label>
-  <input id="cell" value="B2" dir="ltr">
+  <div class="price-card">
+    <div class="price-label">آخرین قیمت هر گرم</div>
+    <div id="price">—</div>
+    <div id="currency">تومان</div>
+  </div>
 
-  <button id="update">دریافت و ثبت آخرین قیمت</button>
+  <button id="update" type="button" disabled>در حال آماده‌سازی افزونه...</button>
+  <div id="status" role="status" aria-live="polite">در انتظار اتصال به Excel...</div>
+  <div class="meta">
+    مقصد: شیت «وضعیت» · سلول G3<br>
+    به‌روزرسانی خودکار: هر ۵ دقیقه تا وقتی پنل افزونه باز است
+  </div>
 
-  <div id="status">آماده دریافت قیمت</div>
+<script>
+  "use strict";
 
-  <script>
-    const API_URL =
-      "https://script.google.com/macros/s/AKfycbyYsdnW8S54LWC2nqztUGiMEt9uu2_2ApHdci6ud1mTivasmtKh19q4uFrLnm_s5ine/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbyYsdnW8S54LWC2nqztUGiMEt9uu2_2ApHdci6ud1mTivasmtKh19q4uFrLnm_s5ine/exec";
+  const TARGET_SHEET = "وضعیت";
+  const TARGET_CELL = "G3";
+  const REFRESH_MS = 5 * 60 * 1000;
 
-    function setStatus(message) {
-      document.getElementById("status").textContent = message;
-    }
+  let isUpdating = false;
+  let refreshTimer = null;
 
-    function getGoldPrice() {
-      return new Promise((resolve, reject) => {
-        const callbackName =
-          "iraPriceCallback_" + Date.now();
+  const button = document.getElementById("update");
+  const statusBox = document.getElementById("status");
+  const priceBox = document.getElementById("price");
 
-        const script = document.createElement("script");
+  function setStatus(message, kind) {
+    statusBox.textContent = message;
+    statusBox.className = kind || "";
+  }
 
-        const timeout = setTimeout(() => {
-          cleanup();
-          reject(new Error("پاسخی از سرور دریافت نشد."));
-        }, 15000);
-
-        function cleanup() {
-          clearTimeout(timeout);
-          delete window[callbackName];
-          script.remove();
-        }
-
-        window[callbackName] = function(data) {
-          cleanup();
-
-          if (!data || !data.success) {
-            reject(new Error(data?.error || "دریافت قیمت ناموفق بود."));
-            return;
-          }
-
-          resolve(data);
-        };
-
-        script.onerror = function() {
-          cleanup();
-          reject(new Error("خطا در اتصال به API قیمت طلا."));
-        };
-
-        script.src =
-          API_URL + "?callback=" + callbackName;
-
-        document.head.appendChild(script);
-      });
-    }
-
-    async function updateExcel() {
-      const cell = document.getElementById("cell").value.trim();
-
-      if (!cell) {
-        setStatus("آدرس سلول را وارد کن.");
-        return;
-      }
-
-      try {
-        setStatus("در حال دریافت قیمت...");
-
-        const data = await getGoldPrice();
-
-        await Excel.run(async (context) => {
-          const sheet = context.workbook.worksheets.getItemAt(0);
-          const range = sheet.getRange(cell);
-
-          range.values = [[data.price]];
-          range.numberFormat = [["#,##0"]];
-
-          await context.sync();
-        });
-
-        setStatus(
-          "قیمت با موفقیت ثبت شد: " +
-          Number(data.price).toLocaleString("en-US") +
-          " " + data.currency
-        );
-
-      } catch (error) {
-        setStatus("خطا: " + error.message);
-      }
-    }
-
-    Office.onReady(function(info) {
-      if (info.host === Office.HostType.Excel) {
-        document.getElementById("update")
-          .addEventListener("click", updateExcel);
-
-        setStatus("افزونه آماده است.");
-      } else {
-        setStatus("این افزونه باید در Excel اجرا شود.");
-      }
+  function formatPrice(value) {
+    return Number(value).toLocaleString("en-US", {
+      maximumFractionDigits: 0
     });
-  </script>
+  }
+
+  // Google Apps Script JSONP: avoids browser CORS restrictions.
+  function getGoldPrice() {
+    return new Promise((resolve, reject) => {
+      const callbackName = "iraGoldCallback_" +
+        Date.now() + "_" + Math.floor(Math.random() * 100000);
+
+      const script = document.createElement("script");
+      let finished = false;
+
+      const timeout = setTimeout(() => {
+        finish();
+        reject(new Error("پاسخی از سرویس قیمت دریافت نشد."));
+      }, 20000);
+
+      function finish() {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timeout);
+        try { delete window[callbackName]; } catch (_) {
+          window[callbackName] = undefined;
+        }
+        if (script.parentNode) script.parentNode.removeChild(script);
+      }
+
+      window[callbackName] = (data) => {
+        finish();
+        if (!data || data.success !== true) {
+          reject(new Error((data && data.error) || "دریافت قیمت ناموفق بود."));
+          return;
+        }
+        const price = Number(data.price);
+        if (!Number.isFinite(price) || price <= 0) {
+          reject(new Error("قیمت دریافتی معتبر نیست."));
+          return;
+        }
+        resolve(data);
+      };
+
+      script.onerror = () => {
+        finish();
+        reject(new Error("خطا در اتصال به API گوگل شیت."));
+      };
+
+      script.src = API_URL +
+        "?callback=" + encodeURIComponent(callbackName) +
+        "&_=" + Date.now();
+
+      document.head.appendChild(script);
+    });
+  }
+
+  async function updateExcel() {
+    if (isUpdating) return;
+    isUpdating = true;
+    button.disabled = true;
+    button.textContent = "در حال دریافت قیمت...";
+    setStatus("در حال دریافت آخرین قیمت از Google Sheets...");
+
+    try {
+      const data = await getGoldPrice();
+
+      await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getItem(TARGET_SHEET);
+        const target = sheet.getRange(TARGET_CELL);
+        target.values = [[Number(data.price)]];
+        target.numberFormat = [["#,##0"]];
+        await context.sync();
+      });
+
+      priceBox.textContent = formatPrice(data.price);
+      const now = new Date();
+      const timeText = now.toLocaleString("fa-IR");
+      const rateType = data.rate_type ? " · نوع نرخ: " + data.rate_type : "";
+      setStatus("قیمت با موفقیت در وضعیت!G3 ثبت شد. آخرین به‌روزرسانی: " +
+        timeText + rateType, "ok");
+    } catch (error) {
+      setStatus("خطا: " + (error && error.message ? error.message : String(error)), "err");
+    } finally {
+      isUpdating = false;
+      button.disabled = false;
+      button.textContent = "دریافت و ثبت قیمت";
+    }
+  }
+
+  Office.onReady((info) => {
+    if (info.host !== Office.HostType.Excel) {
+      setStatus("این افزونه باید در Excel اجرا شود.", "err");
+      return;
+    }
+
+    button.disabled = false;
+    button.textContent = "دریافت و ثبت قیمت";
+    button.addEventListener("click", updateExcel);
+
+    // Initial update when the task pane opens.
+    updateExcel();
+
+    // Automatic refresh every five minutes while the task pane remains open.
+    if (refreshTimer) clearInterval(refreshTimer);
+    refreshTimer = setInterval(updateExcel, REFRESH_MS);
+  });
+</script>
 </body>
 </html>
