@@ -105,7 +105,7 @@
         const data = await getGoldPrice();
 
         await Excel.run(async (context) => {
-          const sheet = context.workbook.worksheets.getActiveWorksheet();
+          const sheet = context.workbook.worksheets.getItemAt(0);
           const range = sheet.getRange(cell);
 
           range.values = [[data.price]];
